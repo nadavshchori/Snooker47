@@ -1,6 +1,4 @@
 import math
-import sys
-import pygame
 import random
 from typing import List,Union
 
@@ -14,7 +12,7 @@ TABLE_HEIGHT = 129  # (cm)
 
 BALL_DIAMETER = 6  # Ball diameter (cm)
 BALL_RADIUS = BALL_DIAMETER / 2  # Ball radius (cm)
-SAFETY_DISTANCE = 3  #distance to stay away from the balls (cm)
+SAFETY_DISTANCE = 5  #distance to stay away from the balls (cm)
 
 ROBOT_WIDTH = 24 # cm
 ROBOT_LENGTH = 20 # cm
@@ -28,6 +26,7 @@ input_positions = [
     (random.randint(0, int(TABLE_WIDTH - BALL_RADIUS)), random.randint(0, int(TABLE_HEIGHT - BALL_RADIUS)))
     for _ in range(16)
 ]
+
 # If a ball is off the table his position is (0, 0)
 
 
@@ -76,7 +75,7 @@ class Table:
         self.black_ball = black_ball
         self.off_table_balls = off_table_balls
 
-def initialise_table(balls_pos: List[Ball]) -> Table:
+def initialise_table(balls_pos: List[tuple[float, float]]) -> Table:
     corners = [Point(0, 0),
                Point(0, TABLE_HEIGHT),
                Point(TABLE_WIDTH, TABLE_HEIGHT),
@@ -110,7 +109,6 @@ def initialise_table(balls_pos: List[Ball]) -> Table:
 
     return Table(corners, pockets, cue_ball, my_balls, enemy_balls, black_ball, off_the_table)
 
-
 # ============================================================================
 # Choose ball algorithm
 # ============================================================================
@@ -128,6 +126,8 @@ def find_forbidden_areas(table : Table) -> List[Union[Circle, Line]]:
     return forbidden_areas
 
 def calc_difficulty(d1: float, d2: float, theta : float) -> float:
+    if theta > 60:
+        return math.inf
     return d1 * d2 / math.cos(theta)
 
 def calc_distance(point1: Point, point2: Point) -> float:
@@ -137,7 +137,10 @@ def calc_theta(cue_pos: Point, ball_pos : Point, pocket_pos : Point) -> float:
     ab = calc_distance(cue_pos, ball_pos)
     bc = calc_distance(ball_pos, pocket_pos)
     ac = calc_distance(cue_pos, pocket_pos)
-    return 180 - math.degrees(math.acos((ab**2 + bc**2 - ac**2) / (2*ab*bc)))
+    theta = 180 - math.degrees(math.acos((ab**2 + bc**2 - ac**2) / (2*ab*bc)))
+    if theta < 0:
+        theta += 360
+    return theta
 
 def find_intersections_line_with_circle(center : Point, r : float, m : float, b : float) -> List[Point]:
     A = 1 + m**2
@@ -199,57 +202,47 @@ def is_between_two_points(point : Point, p1 : Point, p2 : Point) -> bool:
             return True
     return False
 
-def is_free_way(point1 : Point, point2 : Point, forbidden_areas : List[Union[Circle, List]]) -> bool:
+def is_free_way(point1 : Point, point2 : Point, forbidden_areas : List[Union[Circle, Line]]) -> bool:
     if (point1.x - point2.x) == 0:
         for area in forbidden_areas:
-            if area is Circle:
-                intersections = find_intersections_vertical_line_circle(area.center, area.radius, point1.x)
-                if area.center == point2 or area.center == point1:
+            if isinstance(area, Circle):
+                if area.center == point2 or area.center == point1:  # if the forbidden area is the ball itself skip
                     continue
+
+                intersections = find_intersections_vertical_line_circle(area.center, area.radius, point1.x)
                 if len(intersections) == 1:
-                    if (is_between_two_points(intersections[0], point1, point2)):
+                    if is_between_two_points(intersections[0], point1, point2):
                         return False
 
                 elif len(intersections) == 2:
                     intersection_point_1 = intersections[0]
                     intersection_point_2 = intersections[1]
-                    if (is_between_two_points(intersection_point_1, point1, point2)):
+                    if is_between_two_points(intersection_point_1, point1, point2):
                         return False
-                    if (is_between_two_points(intersection_point_2, point1, point2)):
+                    if is_between_two_points(intersection_point_2, point1, point2):
                         return False
-            elif area is Line:
-                intersections = find_intersections_two_lines(point1, point2, area.p1, area.p2)
-                if len(intersections) == 1:
-                    if (is_between_two_points(intersections[0], point1, point2)):
-                        return False
-
         return True
 
     m = (point1.y - point2.y) / (point1.x - point2.x)
     b = point1.y - m * point1.x
 
     for area in forbidden_areas:
-        if area is Circle:
-            intersections = find_intersections_vertical_line_circle(area.center, area.radiuse, point1.x)
-            if area.center == point2 or area.center == point1:
+        if isinstance(area, Circle):
+            if area.center == point2 or area.center == point1: # if the forbidden area is the ball itself skip
                 continue
+
+            intersections = find_intersections_line_with_circle(area.center, area.radius, m, b)
             if len(intersections) == 1:
-                if (is_between_two_points(intersections[0], point1, point2)):
+                if is_between_two_points(intersections[0], point1, point2):
                     return False
 
             elif len(intersections) == 2:
                 intersection_point_1 = intersections[0]
                 intersection_point_2 = intersections[1]
-                if (is_between_two_points(intersection_point_1, point1, point2)):
+                if is_between_two_points(intersection_point_1, point1, point2):
                     return False
-                if (is_between_two_points(intersection_point_2, point1, point2)):
+                if is_between_two_points(intersection_point_2, point1, point2):
                     return False
-        elif area is Line:
-            intersections = find_intersections_two_lines(point1, point2, area.p1, area.p2)
-            if len(intersections) == 1:
-                if (is_between_two_points(intersections[0], point1, point2)):
-                    return False
-
     return True
 
 def choose_ball_and_pocket_to_heat(table : Table) -> List[Union[Ball, Pocket]]:
@@ -283,6 +276,7 @@ def choose_ball_and_pocket_to_heat(table : Table) -> List[Union[Ball, Pocket]]:
 # ============================================================================
 
 def main():
+    print(input_positions)
     table = initialise_table(input_positions)
     chosen = choose_ball_and_pocket_to_heat(table)
     if chosen:

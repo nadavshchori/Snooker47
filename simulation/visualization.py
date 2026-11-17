@@ -1,7 +1,5 @@
-import math
 import sys
 import pygame
-import random
 import ball_selector
 
 def pixel_to_cm(pixel_value):
@@ -76,7 +74,7 @@ def main(input_positions, chosen):
              cm_to_pixel(input_positions[0][1]) - BALL_RADIUS),
         )
 
-        screen.blit(robot_image,(SCREEN_WIDTH- ROBOT_WIDTH, 0))
+        #screen.blit(robot_image,(SCREEN_WIDTH- ROBOT_WIDTH, 0))
 
         if chosen == []:
             pygame.draw.line(screen, (255, 0, 0), (0,0), (SCREEN_WIDTH, SCREEN_HEIGHT))
