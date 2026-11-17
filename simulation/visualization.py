@@ -9,6 +9,7 @@ def cm_to_pixel(cm_value):
     return cm_value * 4
 
 # --- Window & Interface ---
+
 TITLE = "Ball Selector"
 SCREEN_WIDTH =  cm_to_pixel(ball_selector.TABLE_WIDTH)
 SCREEN_HEIGHT = cm_to_pixel(ball_selector.TABLE_HEIGHT)

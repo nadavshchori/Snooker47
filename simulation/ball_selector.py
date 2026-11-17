@@ -260,9 +260,6 @@ def choose_ball_and_pocket_to_heat(table : Table) -> List[Union[Ball, Pocket]]:
                     d2 = calc_distance(ball_pos, pocket.pos)
                     theta = calc_theta(cue_ball_pos, ball_pos, pocket.pos)
                     diff = abs(calc_difficulty(d1, d2, theta))
-                    if ball.pos.x > TABLE_WIDTH / 2:
-                        print(f"BALL {ball} \n POCKET {pocket} \n D1 {d1} \n D2 {d2} \n theta {theta} \n diff {diff}")
-                        print("------------------------------------------------")
                     if diff < best_difficulty:
                         best_difficulty = diff
                         chosen_ball = ball
