@@ -203,7 +203,7 @@ def is_free_way(point1 : Point, point2 : Point, forbidden_areas : List[Union[Cir
     if (point1.x - point2.x) == 0:
         for area in forbidden_areas:
             if area is Circle:
-                intersections = find_intersections_vertical_line_circle(area.center, area.radiuse, point1.x)
+                intersections = find_intersections_vertical_line_circle(area.center, area.radius, point1.x)
                 if area.center == point2 or area.center == point1:
                     continue
                 if len(intersections) == 1:
