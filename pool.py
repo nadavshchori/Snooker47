@@ -6,7 +6,7 @@ model = YOLO("yoloe-26n-seg.pt")
 model.set_classes(["ball on green background"])
 
 
-img = PIL.Image.open('pool.jpg')
+img = PIL.Image.open("start.jpg")
 converter = PIL.ImageEnhance.Color(img)
 img2 = converter.enhance(2)
 
