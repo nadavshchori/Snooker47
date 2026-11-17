@@ -3,7 +3,7 @@ import sys
 import pygame
 import random
 from typing import List,Union
-
+import numpy as np
 
 # ============================================================================
 # CONFIGURATION CONSTANTS
@@ -14,7 +14,7 @@ TABLE_HEIGHT = 129  # (cm)
 
 BALL_DIAMETER = 6  # Ball diameter (cm)
 BALL_RADIUS = BALL_DIAMETER / 2  # Ball radius (cm)
-SAFETY_DISTANCE = 3  #distance to stay away from the balls (cm)
+SAFETY_DISTANCE_BALL = 3  #distance to stay away from the balls (cm)
 
 ROBOT_WIDTH = 24 # cm
 ROBOT_LENGTH = 20 # cm
@@ -48,6 +48,12 @@ class Ball:
     def __init__(self, pos : Point):
         self.pos = pos
 
+    def get_pos(self):
+        return self.pos
+    
+    def set_pos(self, pos):
+            self.pos = pos
+    
     def __str__(self):
         return f"X {self.pos.x}, Y {self.pos.y}"
 
@@ -63,18 +69,77 @@ class Pocket:
     def __str__(self):
         return f"X {self.pos.x}, Y {self.pos.y}"
 
+class Robot():
+    def __init__(self):
+        self.pos = (0,0)
+    def get_pos(self):
+        return self.pos
+    def set_pos(self, pos):
+        self.pos = pos
+
+
 class Table:
     def __init__(self, corners : List[Point], pockets : List[Pocket],
                  cue_ball : Ball, my_balls : List[Ball],
                  enemy_balls : List[Ball], black_ball : Ball,
-                 off_table_balls : int):
+                 off_table_balls : int, robot : Robot):
         self.corners = corners
         self.pockets = pockets
         self.cue_ball = cue_ball
         self.my_balls = my_balls
         self.enemy_balls = enemy_balls
         self.black_ball = black_ball
+        self.on_table_balls = self.my_balls + self.enemy_balls + [self.black_ball]
         self.off_table_balls = off_table_balls
+        self.robot = robot
+
+
+    def is_edge_legit(self, v1, v2, threshold):
+        dir = np.array([v2.x - v1.x, v2.y - v1.y])
+        for ball in self.on_table_balls:
+            ball_pos = ball.get_pos()
+            AP = np.array([ball_pos.x - v1.x, ball_pos.y - v1.y])
+
+            dist = np.linalg.norm(np.cross(AP, dir)) / np.linalg.norm(dir)
+            if dist < threshold:
+                return False
+
+        return True
+
+
+
+    
+    def find_shortest_path(self):
+        HEIGHT_DELTA = 25 #cm
+        WIDTH_DELTA = 50 #cm
+        ROBOT_RADIUS = 12 #cm
+        
+        initial = Point(self.robot.get_pos()[0], self.robot.get_pos()[1])
+        end = self.cue_ball.get_pos()
+
+        
+        self.adj = [[], []]
+        self.vertex_list = [initial, end]
+        for x in range(ROBOT_RADIUS, TABLE_WIDTH - ROBOT_RADIUS, WIDTH_DELTA):
+            for y in range(ROBOT_RADIUS, TABLE_HEIGHT - ROBOT_RADIUS, HEIGHT_DELTA):
+                #check for collision with balls
+                
+                vertex_index = 0
+                for v in self.vertex_list:
+                    if self.is_edge_legit(v, Point(x, y), ROBOT_RADIUS):
+                        self.adj[vertex_index].append([Point(x, y), two_point_dist(Point(x, y), v)])
+                    vertex_index += 1
+                
+                self.vertex_list.append(Point(x, y))
+                self.adj.append([])
+        return [self.vertex_list, self.adj]
+
+
+def two_point_dist(p1, p2):
+    return (p1.x - p2.x)**2 + (p1.y - p2.y)**2
+
+
+
 
 def initialise_table(balls_pos: List[Ball]) -> Table:
     corners = [Point(0, 0),
@@ -108,17 +173,17 @@ def initialise_table(balls_pos: List[Ball]) -> Table:
         else:
             enemy_balls.append(Ball(Point(balls_pos[i][0], balls_pos[i][1])))
 
-    return Table(corners, pockets, cue_ball, my_balls, enemy_balls, black_ball, off_the_table)
+    return Table(corners, pockets, cue_ball, my_balls, enemy_balls, black_ball, off_the_table, Robot())
 
 
 # ============================================================================
 # Choose ball algorithm
 # ============================================================================
 
-def find_forbidden_areas(table : Table) -> List[Union[Circle, Line]]:
+def find_forbidden_areas(table : Table, safety_distance: float) -> List[Union[Circle, Line]]:
     forbidden_areas = []
     for ball in table.my_balls + table.enemy_balls + [table.black_ball]:
-        forbidden_areas.append(Circle(ball.pos, BALL_RADIUS + SAFETY_DISTANCE))
+        forbidden_areas.append(Circle(ball.pos, BALL_RADIUS + safety_distance))
 
     forbidden_areas.append(Line(table.corners[0], table.corners[1]))
     forbidden_areas.append(Line(table.corners[1], table.corners[2]))
@@ -258,7 +323,7 @@ def choose_ball_and_pocket_to_heat(table : Table) -> List[Union[Ball, Pocket]]:
     best_difficulty = math.inf
     cue_ball_pos = table.cue_ball.pos
 
-    forbidden_areas_list = find_forbidden_areas(table)
+    forbidden_areas_list = find_forbidden_areas(table, SAFETY_DISTANCE_BALL)
 
     for ball in table.my_balls:
         ball_pos = ball.pos
@@ -285,15 +350,17 @@ def choose_ball_and_pocket_to_heat(table : Table) -> List[Union[Ball, Pocket]]:
 def main():
     table = initialise_table(input_positions)
     chosen = choose_ball_and_pocket_to_heat(table)
+    path = table.find_shortest_path()
+
     if chosen:
         print(f"chosen ball pos: {chosen[0]}")
         print(f"chosen pocket pos: {chosen[1]}")
-        return [input_positions, [(chosen[0].pos.x,chosen[0].pos.y) , (chosen[1].pos.x, chosen[1].pos.y)]]
+        return [input_positions, [(chosen[0].pos.x,chosen[0].pos.y) , (chosen[1].pos.x, chosen[1].pos.y)], path]
     else:
-        return [input_positions, []]
-
+        return [input_positions, [] , path]
 # ============================================================================
 # Run
 # ============================================================================
 if __name__ == "__main__":
     main()
+    
