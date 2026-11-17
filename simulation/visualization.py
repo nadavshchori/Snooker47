@@ -28,21 +28,23 @@ BALL_COUNT = 16
 # ============================================================================
 
 
-def main(input_positions, chosen):
+def main(input_positions, chosen, path):
+    vertix, adj = path
+
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption(TITLE)
 
-    table_image = pygame.image.load("assets/images/table.png").convert_alpha()
+    table_image = pygame.image.load("simulation/assets/images/table.png").convert_alpha()
     table_image = pygame.transform.scale(table_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
     ball_images = []
     for i in range(1, BALL_COUNT + 1):
-        ball_image = pygame.image.load(f"assets/images/ball_{i}.png").convert_alpha()
+        ball_image = pygame.image.load(f"simulation/assets/images/ball_{i}.png").convert_alpha()
         ball_image = pygame.transform.scale(ball_image, (BALL_DIAMETER, BALL_DIAMETER))
         ball_images.append(ball_image)
 
-    robot_image = pygame.image.load("assets/images/robot.png").convert_alpha()
+    robot_image = pygame.image.load("simulation/assets/images/robot.png").convert_alpha()
     robot_image = pygame.transform.scale(robot_image, (ROBOT_WIDTH, ROBOT_LENGTH))
 
     game_on = True
@@ -89,6 +91,14 @@ def main(input_positions, chosen):
                              (cm_to_pixel(chosen_ball[0]), cm_to_pixel(chosen_ball[1])),
                               (cm_to_pixel(chosen_pocket[0]), cm_to_pixel(chosen_pocket[1])))
 
+        print(adj)
+        print(len(vertix))
+        for i,v in enumerate(vertix):
+            for u in adj[i]:
+                    pygame.draw.line(screen, (0, 0, 255),
+                                                (cm_to_pixel(v.x), cm_to_pixel(v.y)),
+                                                (cm_to_pixel(u[0].x), cm_to_pixel(u[0].y)))
+
         # --- Handle events ---
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -103,7 +113,8 @@ def main(input_positions, chosen):
 
 
 if __name__ == '__main__':
-        input_positions, chosen = ball_selector.main()
-        main(input_positions, chosen)
+        input_positions, chosen, path = ball_selector.main()
+        main(input_positions, chosen, path)
+
 
 
