@@ -23,7 +23,7 @@ ROBOT_LENGTH = 20 # cm
 # ============================================================================
 
 input_positions = [
-    (random.randint(0, int(TABLE_WIDTH - BALL_RADIUS)), random.randint(0, int(TABLE_HEIGHT - BALL_RADIUS)))
+    (random.randint(BALL_RADIUS, int(TABLE_WIDTH - BALL_RADIUS)), random.randint(BALL_RADIUS, int(TABLE_HEIGHT - BALL_RADIUS)))
     for _ in range(16)
 ]
 
@@ -126,9 +126,9 @@ def find_forbidden_areas(table : Table) -> List[Union[Circle, Line]]:
     return forbidden_areas
 
 def calc_difficulty(d1: float, d2: float, theta : float) -> float:
-    if theta > 60:
+    if theta >= 90:
         return math.inf
-    return d1 * d2 / math.cos(theta)
+    return d1 * d2 /  (2 * math.cos(math.radians(theta)))
 
 def calc_distance(point1: Point, point2: Point) -> float:
     return math.sqrt((point1.x - point2.x)**2 + (point1.y - point2.y)**2)
@@ -138,8 +138,6 @@ def calc_theta(cue_pos: Point, ball_pos : Point, pocket_pos : Point) -> float:
     bc = calc_distance(ball_pos, pocket_pos)
     ac = calc_distance(cue_pos, pocket_pos)
     theta = 180 - math.degrees(math.acos((ab**2 + bc**2 - ac**2) / (2*ab*bc)))
-    if theta < 0:
-        theta += 360
     return theta
 
 def find_intersections_line_with_circle(center : Point, r : float, m : float, b : float) -> List[Point]:
@@ -262,6 +260,9 @@ def choose_ball_and_pocket_to_heat(table : Table) -> List[Union[Ball, Pocket]]:
                     d2 = calc_distance(ball_pos, pocket.pos)
                     theta = calc_theta(cue_ball_pos, ball_pos, pocket.pos)
                     diff = abs(calc_difficulty(d1, d2, theta))
+                    if ball.pos.x > TABLE_WIDTH / 2:
+                        print(f"BALL {ball} \n POCKET {pocket} \n D1 {d1} \n D2 {d2} \n theta {theta} \n diff {diff}")
+                        print("------------------------------------------------")
                     if diff < best_difficulty:
                         best_difficulty = diff
                         chosen_ball = ball
