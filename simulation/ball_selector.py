@@ -12,7 +12,7 @@ TABLE_HEIGHT = 129  # (cm)
 
 BALL_DIAMETER = 6  # Ball diameter (cm)
 BALL_RADIUS = BALL_DIAMETER / 2  # Ball radius (cm)
-SAFETY_DISTANCE = 5  #distance to stay away from the balls (cm)
+SAFETY_DISTANCE_BALL = 5  #distance to stay away from the balls (cm)
 
 ROBOT_WIDTH = 24 # cm
 ROBOT_LENGTH = 20 # cm
@@ -23,7 +23,7 @@ ROBOT_LENGTH = 20 # cm
 # ============================================================================
 
 input_positions = [
-    (random.randint(BALL_RADIUS, int(TABLE_WIDTH - BALL_RADIUS)), random.randint(BALL_RADIUS, int(TABLE_HEIGHT - BALL_RADIUS)))
+    (random.randint(int(BALL_RADIUS), int(TABLE_WIDTH - BALL_RADIUS)), random.randint(int(BALL_RADIUS), int(TABLE_HEIGHT - BALL_RADIUS)))
     for _ in range(16)
 ]
 
