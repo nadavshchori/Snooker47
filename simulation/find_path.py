@@ -18,6 +18,8 @@ SAFETY_DISTANCE_BALL = 5  #distance to stay away from the balls (cm)
 ROBOT_WIDTH = 24 # cm
 ROBOT_LENGTH = 20 # cm
 ROBOT_RADIUS = max(ROBOT_LENGTH, ROBOT_WIDTH)//2 #cm
+
+CUE_OFFSET = 10 # cm
         
 
 # ============================================================================
@@ -127,7 +129,6 @@ class Table:
     def find_shortest_path(self, chosen_point):
         HEIGHT_DELTA = 20 #cm
         WIDTH_DELTA = 20 #cm
-        CUE_OFFSET = 6 #cm
 
         initial = Point(self.robot.get_pos()[0], self.robot.get_pos()[1])
         cue =self.cue_ball.get_pos()   
@@ -135,8 +136,11 @@ class Table:
         end = Point(cue.x + CUE_OFFSET*delta[0], cue.y + CUE_OFFSET*delta[1])
         forbidden_areas = find_forbidden_areas(self, BALL_DIAMETER/2, True)
         G = Graph()
-        G.add_node(initial)
-        G.add_node(end)
+        initial_node = G.add_node(initial)
+        end_node = G.add_node(end)
+        curr_edge = Edge(initial_node, end_node, two_point_dist(initial_node.point, end_node.point))
+        if self.is_edge_valid(curr_edge.v1.point, curr_edge.v2.point, forbidden_areas, BALL_DIAMETER / 2):
+            G.add_edge(curr_edge)
         for x in range(ROBOT_RADIUS, TABLE_WIDTH - ROBOT_RADIUS, WIDTH_DELTA):
             for y in range(ROBOT_RADIUS, TABLE_HEIGHT - ROBOT_RADIUS, HEIGHT_DELTA):
                 curr_point = Point(x, y)
@@ -230,7 +234,7 @@ def find_forbidden_areas(table : Table, safety_distance: float, cue_ball : bool 
         forbidden_areas.append(Circle(ball.pos, BALL_RADIUS + safety_distance))
 
     if cue_ball:
-        forbidden_areas.append(Circle(table.cue_ball.pos, BALL_RADIUS))
+        forbidden_areas.append(Circle(table.cue_ball.pos, CUE_OFFSET))
 
     forbidden_areas.append(Line(table.corners[0], table.corners[1]))
     forbidden_areas.append(Line(table.corners[1], table.corners[2]))
