@@ -1,6 +1,7 @@
 import sys
 import pygame
 import ball_selector
+#import path_planner
 
 def pixel_to_cm(pixel_value):
     return pixel_value / 4
@@ -29,7 +30,6 @@ BALL_COUNT = 16
 
 
 def main(input_positions, chosen, path):
-    vertix, adj = path
 
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -91,13 +91,14 @@ def main(input_positions, chosen, path):
                              (cm_to_pixel(chosen_ball[0]), cm_to_pixel(chosen_ball[1])),
                               (cm_to_pixel(chosen_pocket[0]), cm_to_pixel(chosen_pocket[1])))
 
-        print(adj)
-        print(len(vertix))
-        for i,v in enumerate(vertix):
-            for u in adj[i]:
-                    pygame.draw.line(screen, (0, 0, 255),
-                                                (cm_to_pixel(v.x), cm_to_pixel(v.y)),
-                                                (cm_to_pixel(u[0].x), cm_to_pixel(u[0].y)))
+        for i in range(len(path) - 1):
+            pygame.draw.line(screen, (0, 0, 255),
+                                (cm_to_pixel(path[i].v1.point.x), cm_to_pixel(path[i].v2.point.y)),
+                                (cm_to_pixel(path[i + 1].v2.point.x), cm_to_pixel(path[i + 1].v2.point.y)))
+            
+
+
+                  
 
         # --- Handle events ---
         for event in pygame.event.get():
