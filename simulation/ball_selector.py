@@ -2,7 +2,8 @@ import math
 import random
 from typing import List,Union
 import numpy as np
-
+import heapq
+from path_planner import *
 # ============================================================================
 # CONFIGURATION CONSTANTS
 # ============================================================================
@@ -16,7 +17,8 @@ SAFETY_DISTANCE_BALL = 5  #distance to stay away from the balls (cm)
 
 ROBOT_WIDTH = 24 # cm
 ROBOT_LENGTH = 20 # cm
-
+ROBOT_RADIUS = max(ROBOT_LENGTH, ROBOT_WIDTH)//2 #cm
+        
 
 # ============================================================================
 # Input
@@ -70,7 +72,7 @@ class Pocket:
 
 class Robot():
     def __init__(self):
-        self.pos = (0,0)
+        self.pos = (ROBOT_WIDTH, ROBOT_LENGTH)
     def get_pos(self):
         return self.pos
     def set_pos(self, pos):
@@ -93,51 +95,123 @@ class Table:
         self.robot = robot
 
 
-    def is_edge_legit(self, v1, v2, threshold):
-        dir = np.array([v2.x - v1.x, v2.y - v1.y])
+    def is_edge_legit2(self, v1, v2, safety_radius):
+        dir = [v2.x - v1.x, v2.y - v1.y]
         for ball in self.on_table_balls:
-            ball_pos = ball.get_pos()
-            AP = np.array([ball_pos.x - v1.x, ball_pos.y - v1.y])
+            ball_pos = ball.pos
+            if min(v1.x, v2.x) - safety_radius <= ball_pos.x <= max(v1.x, v2.x) and min(v1.y, v2.y) <= ball_pos.y <= max(v1.y, v2.y):
+                AP = [ball_pos.x - v1.x, ball_pos.y - v1.y]
+        
+                dist = np.linalg.norm(np.cross(AP, dir)) / np.linalg.norm(dir)
+                if dist < safety_radius:
+                    return False
+    
+        return True
 
-            dist = np.linalg.norm(np.cross(AP, dir)) / np.linalg.norm(dir)
-            if dist < threshold:
-                return False
+    def is_edge_valid(self, v1: Point, v2 : Point, forbidden_areas : List[Union[Circle, Line]], safety_radius: float):
+        for area in forbidden_areas:
+            if isinstance(area, Circle):
+                if v1.x - v2.x == 0:
+                    intersection = find_intersections_vertical_line_circle(area.center, area.radius, v1.x)
+                else:
+                    m = (v1.y - v2.y) / (v1.x - v2.x)
+                    b = v1.y - m * v1.x
+                    intersection = find_intersections_line_with_circle(area.center, area.radius, m, b)
 
+                if len(intersection) == 1:
+                    if is_between_two_points(intersection[0], v1, v2):
+                        return False
+
+                elif len(intersection) == 2:
+                    if is_between_two_points(intersection[0], v1, v2):
+                        return False
+                    if is_between_two_points(intersection[1], v1, v2):
+                        return False
+                    if is_between_two_points(v1, intersection[0], intersection[1]):
+                        return False
+                    if is_between_two_points(v2, intersection[0], intersection[1]):
+                        return False
+                    
         return True
 
 
-
-    
     def find_shortest_path(self):
-        HEIGHT_DELTA = 25 #cm
+        HEIGHT_DELTA = 50 #cm
         WIDTH_DELTA = 50 #cm
-        ROBOT_RADIUS = 12 #cm
         
         initial = Point(self.robot.get_pos()[0], self.robot.get_pos()[1])
-        end = self.cue_ball.get_pos()
-
-        
-        self.adj = [[], []]
-        self.vertex_list = [initial, end]
+        end = self.cue_ball.get_pos()        
+        forbidden_areas = find_forbidden_areas(self, ROBOT_RADIUS + BALL_DIAMETER/2)
+        G = Graph()
+        G.add_node(initial)
+        G.add_node(end)
         for x in range(ROBOT_RADIUS, TABLE_WIDTH - ROBOT_RADIUS, WIDTH_DELTA):
             for y in range(ROBOT_RADIUS, TABLE_HEIGHT - ROBOT_RADIUS, HEIGHT_DELTA):
-                #check for collision with balls
+                curr_point = Point(x, y)
+                curr_node = G.add_node(curr_point)
                 
-                vertex_index = 0
-                for v in self.vertex_list:
-                    if self.is_edge_legit(v, Point(x, y), ROBOT_RADIUS):
-                        self.adj[vertex_index].append([Point(x, y), two_point_dist(Point(x, y), v)])
-                    vertex_index += 1
-                
-                self.vertex_list.append(Point(x, y))
-                self.adj.append([])
-        return [self.vertex_list, self.adj]
+                for node in G.nodes:
+                    curr_edge = Edge(curr_node, node, two_point_dist(curr_node.point, node.point))
+                    if self.is_edge_valid(curr_edge.v1.point, curr_edge.v2.point, forbidden_areas, ROBOT_RADIUS + BALL_DIAMETER/2):
+                        G.add_edge(curr_edge)
+                print(G.matric)
+        predecessors = G.dijkstra()
+        #print(predecessors)
+        '''
+        path = retrace(predecessors)
+        point_path = []
+        for index in path:
+            point_path.append(G.get_node_from_id(index).point)
 
+        coor_path = []
+        for point in point_path:
+            coor_path.append((point.x, point.y))
+
+        print(coor_path)
+        '''
+        return G.edges
+
+
+"""
+def retrace(lst):
+    output = [1]
+    i = 1
+    while lst[int(i)] != 0:
+        i = lst[i]
+        output.append(i)
+    output.append(lst[i])
+    return output[::-1]
+
+def dijkstraF(adj, src):
+    V = len(adj)
+    # Min-heap storing {distance, vertex}
+    pq = []
+    # Initialize distances to infinity
+    dist = [float('inf')] * V
+    
+    # Distance from source to itself is 0
+    dist[src] = 0
+    heapq.heappush(pq, (0, src))
+    predecessors = [float('inf')] * V
+    while pq:
+        d, u = heapq.heappop(pq)
+        # Skip outdated entries
+        if d > dist[u]:
+            continue
+        # Traverse adjacent vertices
+        for x in adj[u]:
+            v = x[2]
+            weight = x[1]
+            # Update distance if a shorter path is found
+            if dist[v] > d + weight:
+                dist[v] = d + weight
+                heapq.heappush(pq, (dist[v], v))
+                predecessors[v] = u
+    return dist, predecessors
+"""
 
 def two_point_dist(p1, p2):
     return (p1.x - p2.x)**2 + (p1.y - p2.y)**2
-
-
 
 
 def initialise_table(balls_pos: List[tuple[float, float]]) -> Table:
@@ -191,7 +265,7 @@ def find_forbidden_areas(table : Table, safety_distance: float) -> List[Union[Ci
     return forbidden_areas
 
 def calc_difficulty(d1: float, d2: float, theta : float) -> float:
-    if theta >= 90:
+    if theta >= 60:
         return math.inf
     return d1 * d2 /  (2 * math.cos(math.radians(theta)))
 
@@ -341,6 +415,8 @@ def choose_ball_and_pocket_to_heat(table : Table) -> List[Union[Ball, Pocket]]:
 def main():
     print(input_positions)
     table = initialise_table(input_positions)
+    
+
     chosen = choose_ball_and_pocket_to_heat(table)
     path = table.find_shortest_path()
 
