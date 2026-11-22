@@ -71,7 +71,7 @@ class Pocket:
     def __str__(self):
         return f"X {self.pos.x}, Y {self.pos.y}"
 
-class Robot():
+class Robot:
     def __init__(self):
         self.pos = (ROBOT_WIDTH, ROBOT_LENGTH)
     def get_pos(self):
@@ -133,7 +133,7 @@ class Table:
         cue =self.cue_ball.get_pos()   
         delta = get_normalized_direction(chosen_point, cue)    
         end = Point(cue.x + CUE_OFFSET*delta[0], cue.y + CUE_OFFSET*delta[1])
-        forbidden_areas = find_forbidden_areas(self, BALL_DIAMETER/2)
+        forbidden_areas = find_forbidden_areas(self, BALL_DIAMETER/2, True)
         G = Graph()
         G.add_node(initial)
         G.add_node(end)
@@ -224,10 +224,13 @@ def initialise_table(balls_pos: List[tuple[float, float]]) -> Table:
 # Choose ball algorithm
 # ============================================================================
 
-def find_forbidden_areas(table : Table, safety_distance: float) -> List[Union[Circle, Line]]:
+def find_forbidden_areas(table : Table, safety_distance: float, cue_ball : bool = False) -> List[Union[Circle, Line]]:
     forbidden_areas = []
     for ball in table.my_balls + table.enemy_balls + [table.black_ball]:
         forbidden_areas.append(Circle(ball.pos, BALL_RADIUS + safety_distance))
+
+    if cue_ball:
+        forbidden_areas.append(Circle(table.cue_ball.pos, BALL_RADIUS))
 
     forbidden_areas.append(Line(table.corners[0], table.corners[1]))
     forbidden_areas.append(Line(table.corners[1], table.corners[2]))
