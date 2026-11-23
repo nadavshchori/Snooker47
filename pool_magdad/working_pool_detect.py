@@ -196,8 +196,7 @@ def shade_check(lst_ball_images_and_boxes):
                     img_and_box2 = None
 
     return lst_ball_images_and_boxes
-
-                
+           
 def convert_to_binary_img_white(img):
     rows, cols = img.shape[:2]
     img_RGB = img.copy()
