@@ -1,3 +1,5 @@
+from os import name
+from sympy import false
 from ultralytics import YOLO
 import PIL
 from PIL import ImageEnhance
@@ -150,11 +152,9 @@ import matplotlib.pyplot as plt
 
 
 def yolo_find_balls(img):
-    results = model(img)
+    results = model(img , conf = 0.4)
     result = results[0]
     result.names[0] = ""
-    print()
-    print(result.keypoints)
     result.show()
     return result
 
@@ -166,58 +166,183 @@ def separate_balls(result):
         y1 = corners[1]
         x2 = corners[2]
         y2 = corners[3]
-        sep_ball_img = img[y1:y2, x1:x2]
-        lst_images.append(sep_ball_img)
+        sep_ball_img = img[y1:y2, x1:x2]     
+        lst_images.append([sep_ball_img,box,box.conf.item()])   
+        
     return lst_images
 
-def convert_to_binary_img(img):
+def find_center_box(box):
+    corners = box.xyxy[0].int().tolist()
+    x1 = corners[0]
+    y1 = corners[1]
+    x2 = corners[2]
+    y2 = corners[3]
+    center_x = (x1+x2)/2
+    center_y = (y1+y2)/2
+    return (center_x, center_y)
+
+def shade_check(lst_ball_images_and_boxes):
+    for img_and_box1 in lst_ball_images_and_boxes:
+        ball_box1 = img_and_box1[1]
+        center1 = find_center_box(ball_box1)
+        for img_and_box2 in lst_ball_images_and_boxes:
+            ball_box2 = img_and_box2[1]
+            center2 = find_center_box(ball_box2)
+            if center1 != center2 and abs(center1[0]-center2[0]) < 50 and abs(center1[1]-center2[1]) < 50:
+                print("shade detected")
+                if  ball_box1.conf.item() < img_and_box2[2]:
+                    img_and_box1 = None
+                else:
+                    img_and_box2 = None
+
+    return lst_ball_images_and_boxes
+           
+def convert_to_binary_img_white(img):
     rows, cols = img.shape[:2]
     img_RGB = img.copy()
     img = cv2.cvtColor(img_RGB, cv2.COLOR_BGR2GRAY)
-
     for i in range(rows):
         for j in range(cols):
             sum_pixel= int(img_RGB[i, j][0]) + int(img_RGB[i, j][1]) + int(img_RGB[i, j][2])
-            if sum_pixel > 600:
+            if sum_pixel > 550:
                 img[i, j] = 255
             else:
                 img[i, j] = 0
 
+    return img
+
+def convert_to_binary_img_black(img):
+    rows, cols = img.shape[:2]
+    img_RGB = img.copy()
+    img = cv2.cvtColor(img_RGB, cv2.COLOR_BGR2GRAY)
+    for i in range(rows):
+        for j in range(cols):
+            sum_pixel= int(img_RGB[i, j][0]) + int(img_RGB[i, j][1]) + int(img_RGB[i, j][2])
+            if sum_pixel > 150:
+                img[i, j] = 255
+            else:
+                img[i, j] = 0
 
     return img
 
-def stripes_or_full(results,lst_ball_images):
-    ball_type = ""
-    for ball_img in lst_ball_images:
-        bi_img = convert_to_binary_img(ball_img)  #only black and white
+def stripes_full_or_white(lst_ball_images_and_boxes,lst_stripped_balls,lst_full_balls, black_ball):
+    max_white = 0
+    min_white = 100000000
+    white_ball = (0,0)
+    count_stripped = 0
+    count_full = 0
+    sum_white = 0
+
+    for ball_img in lst_ball_images_and_boxes:
+        bi_img = convert_to_binary_img_white(ball_img[0])  #only black and white
         sum_white = 0
         rows, cols = bi_img.shape[:2]
         for i in range(rows):
             for j in range(cols):
                 sum_white += int(bi_img[i, j])
-        if  sum_white >= 100000:
-            ball_type = "white"
+        if sum_white > max_white:
+            max_white = sum_white
+        if sum_white < min_white:
+            min_white = sum_white
 
-        elif 40000 <= sum_white <= 100000:
-            ball_type = "stripped"
+    for ball_img in lst_ball_images_and_boxes:
+        bi_img = convert_to_binary_img_white(ball_img[0])  #only black and white
+        sum_white = 0
+        rows, cols = bi_img.shape[:2]
+        for i in range(rows):
+            for j in range(cols):
+                sum_white += int(bi_img[i, j])
+
+        ball_box = ball_img[1]
+        center = find_center_box(ball_box)
+        im = ball_img[0]
+
+        if  sum_white >= max_white:
+            white_ball = center
+            print("sum_white: ", sum_white, "type: white" )
+
+        elif min_white + 50000 <= sum_white < max_white:
+            lst_stripped_balls[count_stripped] = center
+            count_stripped += 1
+            print("sum_white: ", sum_white, "type: stripped" , "center: ", center)
+
+        elif center != black_ball:
+            lst_full_balls[count_full] = center
+            count_full += 1
+            print("sum_white: ", sum_white, "type: full" , "center: ", center)
 
         else:
-            ball_type = "full"
-        print(sum_white,ball_type)
+            print( "type: black" )
+
+        
         cv2.imshow('binary Image (Weighted)', bi_img)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
+        cv2.imshow('binary Image (Weighted)', im)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+    return  lst_stripped_balls, lst_full_balls, white_ball
+
+def detect_black(lst_ball_images):
+    min_white = 100000000
+    black_ball = (0,0)
+    for ball_img in lst_ball_images:
+        bi_img = convert_to_binary_img_black(ball_img[0])  #only black and white
+        sum_white = 0
+        rows, cols = bi_img.shape[:2]
+        for i in range(rows):
+            for j in range(cols):
+                sum_white += int(bi_img[i, j])
+        ball_box = ball_img[1]
+        corners = ball_box.xyxy[0].int().tolist()
+        x1 = corners[0]
+        y1 = corners[1]
+        x2 = corners[2]
+        y2 = corners[3]
+        
+        if  sum_white < min_white:
+            min_white = sum_white
+            black_ball = ((x1+x2)/2, (y1+y2)/2)
 
 
+    return black_ball
 
+def create_lst_balls():
+    lst_ball_types = []
+    for i in range(1, 10):
+        lst_ball_types.append((0,0))
+    return lst_ball_types
+
+def combine_lists(white_ball, black_ball, lst_stripped_balls, lst_full_balls):
+    lst_all_balls = []
+    lst_all_balls.append(white_ball)
+    for ball in lst_stripped_balls:
+        lst_all_balls.append(ball)
+    lst_all_balls.append(black_ball)
+    for ball in lst_full_balls:
+        lst_all_balls.append(ball)
+    return lst_all_balls
 # -------------------------------------------------------------------- #
-img = cv2.imread('pool.jpg')
+img = cv2.imread("pool_magdad\Screenshot_1.jpg")
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+lst_stripped_balls = create_lst_balls()
+lst_full_balls = create_lst_balls()
+white_ball = (0,0)
+black_ball = (0,0)
 
 model = YOLO("yoloe-26n-seg.pt")
-model.set_classes(["billiard round ball on green background maybe near other balls"])
+model.set_classes(["billiard circular ball on green background maybe near other balls"])
 
 
 result = yolo_find_balls(img)
-lst_ball_images = separate_balls(result)
-stripes_or_full(result,lst_ball_images)
-
+lst_ball_images_and_boxes = separate_balls(result)
+lst_ball_images_and_boxes = shade_check(lst_ball_images_and_boxes)
+black_ball = detect_black(lst_ball_images_and_boxes)
+lst_stripped_balls, lst_full_balls, white_ball = stripes_full_or_white(lst_ball_images_and_boxes, lst_stripped_balls, lst_full_balls, black_ball)
+print("white ball: ", white_ball)
+print("stripped balls: ", lst_stripped_balls)
+print("black ball: ", black_ball)
+print("full balls: ", lst_full_balls)
+# lst_all_balls_pixels = combine_lists(white_ball, black_ball, lst_stripped_balls, lst_full_balls)
+# print(lst_all_balls_pixels)
