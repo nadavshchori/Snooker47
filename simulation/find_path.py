@@ -16,7 +16,7 @@ BALL_RADIUS = BALL_DIAMETER / 2  # Ball radius (cm)
 SAFETY_DISTANCE_BALL = 5  #distance to stay away from the balls (cm)
 
 ROBOT_WIDTH = 24 # cm
-ROBOT_LENGTH = 20 # cm
+ROBOT_LENGTH = 24 # cm
 ROBOT_RADIUS = max(ROBOT_LENGTH, ROBOT_WIDTH)//2 #cm
 
 CUE_OFFSET = 10 # cm
@@ -98,7 +98,7 @@ class Table:
         self.robot = robot
 
 
-    def is_edge_valid(self, v1: Point, v2 : Point, forbidden_areas : List[Union[Circle, Line]], safety_radius: float):
+    def is_edge_valid(self, v1: Point, v2 : Point, forbidden_areas : List[Union[Circle, Line]]):
         for area in forbidden_areas:
             if isinstance(area, Circle):
                 if v1.x - v2.x == 0:
@@ -126,21 +126,29 @@ class Table:
 
     
 
-    def find_shortest_path(self, chosen_point):
-        HEIGHT_DELTA = 20 #cm
-        WIDTH_DELTA = 20 #cm
+    def find_shortest_path(self, chosen_point = Point(-1, -1)):
+        HEIGHT_DELTA = 8 #cm
+        WIDTH_DELTA = 8 #cm
+
 
         initial = Point(self.robot.get_pos()[0], self.robot.get_pos()[1])
-        cue =self.cue_ball.get_pos()   
-        delta = get_normalized_direction(chosen_point, cue)    
-        end = Point(cue.x + CUE_OFFSET*delta[0], cue.y + CUE_OFFSET*delta[1])
-        forbidden_areas = find_forbidden_areas(self, BALL_DIAMETER/2, True)
+        cue = self.cue_ball.get_pos()
+
+        if chosen_point.x == -1:
+            end = self.cue_ball.get_pos()   
+        else:
+            delta = get_normalized_direction(chosen_point, cue)    
+            end = Point(cue.x + CUE_OFFSET*delta[0], cue.y + CUE_OFFSET*delta[1])
+        
+        forbidden_areas = find_forbidden_areas(self, ROBOT_RADIUS, True)
         G = Graph()
         initial_node = G.add_node(initial)
         end_node = G.add_node(end)
         curr_edge = Edge(initial_node, end_node, two_point_dist(initial_node.point, end_node.point))
-        if self.is_edge_valid(curr_edge.v1.point, curr_edge.v2.point, forbidden_areas, BALL_DIAMETER / 2):
+        
+        if self.is_edge_valid(curr_edge.v1.point, curr_edge.v2.point, forbidden_areas):
             G.add_edge(curr_edge)
+        
         for x in range(ROBOT_RADIUS, TABLE_WIDTH - ROBOT_RADIUS, WIDTH_DELTA):
             for y in range(ROBOT_RADIUS, TABLE_HEIGHT - ROBOT_RADIUS, HEIGHT_DELTA):
                 curr_point = Point(x, y)
@@ -148,37 +156,39 @@ class Table:
                 
                 for node in G.nodes:
                     curr_edge = Edge(curr_node, node, two_point_dist(curr_node.point, node.point))
-                    if self.is_edge_valid(curr_edge.v1.point, curr_edge.v2.point, forbidden_areas, BALL_DIAMETER/2):
+                    if self.is_edge_valid(curr_edge.v1.point, curr_edge.v2.point, forbidden_areas):
                         G.add_edge(curr_edge)
         predecessors = G.dijkstra()
-        print(predecessors)
         
         path = retrace(predecessors)
 
+        if path != -9999:
+            point_path = []
 
-        point_path = []
+            for index in path:
+                point_path.append(G.get_node_from_id(index).point)
 
-        for index in path:
-            point_path.append(G.get_node_from_id(index).point)
+            coor_path = []
+            for point in point_path:
+                coor_path.append((point.x, point.y))
 
-        coor_path = []
-        for point in point_path:
-            coor_path.append((point.x, point.y))
-
-        print(f"retrace output: {path}, \n point path: {point_path} \n coor path: {coor_path}")
         
-        return G.edges, G.nodes, coor_path
+            return G.edges, G.nodes, coor_path
+        return G.edges, G.nodes, path
 
 
 
 def retrace(lst):
-    output = [1]
-    i = 1
-    while lst[int(i)] != 0:
-        i = lst[i]
-        output.append(i)
-    output.append(lst[i])
-    return output[::-1]
+    try:
+        output = [1]
+        i = 1
+        while lst[int(i)] != 0:
+            i = lst[i]
+            output.append(i)
+        output.append(lst[i])
+        return output[::-1]
+    except:
+        return -9999
 
 def get_normalized_direction(p1: Point, p2: Point):
     size = two_point_dist(p1, p2)
@@ -361,6 +371,25 @@ def is_free_way(point1 : Point, point2 : Point, forbidden_areas : List[Union[Cir
                     return False
     return True
 
+
+def is_way_free_of_lines(point1 : Point, point2 : Point, forbidden_areas : List[Union[Circle, Line]]) -> bool:
+    for area in forbidden_areas:
+        if isinstance(area, Line):
+            intersections = find_intersections_two_lines(area.p1, area.p2, point1, point2)
+            
+            if len(intersections) == 1:
+                if is_between_two_points(intersections[0], point1, point2):
+                    return False
+    return True
+
+
+
+
+def is_hitable(cue_ball_pos, ball_pos, forbidden_areas_list):
+    dir = get_normalized_direction(ball_pos, cue_ball_pos)
+    hitting_point = Point(cue_ball_pos.x + ROBOT_RADIUS * dir[0], cue_ball_pos.y + ROBOT_RADIUS * dir[1])
+    return is_free_way(cue_ball_pos, hitting_point, forbidden_areas_list) and is_way_free_of_lines(cue_ball_pos, hitting_point, forbidden_areas_list)
+
 def choose_ball_and_pocket_to_heat(table : Table) -> List[Union[Ball, Pocket]]:
     chosen_ball = ''
     chosen_pocket  = ''
@@ -371,7 +400,7 @@ def choose_ball_and_pocket_to_heat(table : Table) -> List[Union[Ball, Pocket]]:
 
     for ball in table.my_balls:
         ball_pos = ball.pos
-        if is_free_way(cue_ball_pos, ball_pos, forbidden_areas_list):
+        if is_free_way(cue_ball_pos, ball_pos, forbidden_areas_list) and is_hitable(cue_ball_pos, ball_pos, forbidden_areas_list):
             d1 = calc_distance(cue_ball_pos, ball_pos)
             for pocket in table.pockets:
                 if is_free_way(ball_pos, pocket.pos, forbidden_areas_list):
@@ -397,13 +426,14 @@ def main():
     
 
     chosen = choose_ball_and_pocket_to_heat(table)
-    path = table.find_shortest_path(chosen[0].get_pos())
-
+    
     if chosen:
+        path = table.find_shortest_path(chosen[0].get_pos())
         print(f"chosen ball pos: {chosen[0]}")
         print(f"chosen pocket pos: {chosen[1]}")
         return [input_positions, [(chosen[0].pos.x,chosen[0].pos.y) , (chosen[1].pos.x, chosen[1].pos.y)], path]
     else:
+        path = table.find_shortest_path()
         return [input_positions, [] , path]
 # ============================================================================
 # Run
