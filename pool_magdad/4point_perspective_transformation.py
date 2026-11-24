@@ -18,10 +18,12 @@ pts2 = np.float32([[0, 0], [SCREEN_WIDTH, 0], [0, SCREEN_HEIGHT], [SCREEN_WIDTH,
 M = cv.getPerspectiveTransform(pts1, pts2)
 
 dst = cv.warpPerspective(img, M, (SCREEN_WIDTH, SCREEN_HEIGHT))
-plt.imshow(dst)
+cv.imshow("wow", dst)
+cv.waitKey(0)
+cv.destroyAllWindows()
 
-plt.subplot(121), plt.imshow(img), plt.title('Input')
-plt.subplot(122), plt.imshow(dst), plt.title('Output')
+#plt.subplot(121), plt.imshow(img), plt.title('Input')
+#plt.subplot(122), plt.imshow(dst), plt.title('Output')
 plt.show()
 
 
