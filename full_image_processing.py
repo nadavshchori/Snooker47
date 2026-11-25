@@ -35,6 +35,7 @@ def preProcessing(img):
     # 1 - Convert to grey level
     imgGray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
+    print(imgGray.shape)
     # 2 - Denoise image
     imgBlur = cv2.fastNlMeansDenoising(imgGray, h=10)
     # imgBlur2 = cv2.GaussianBlur(imgGray,(5,5),1)  # another way of denoising
@@ -316,12 +317,13 @@ def stripes_full_or_white(lst_ball_images_and_boxes, lst_stripped_balls, lst_ful
             print("sum_white: ", balls_white[j], "type: full", "center: ", center)
 
 
-        # cv2.imshow('binary Image (Weighted)', bi_img)
+        # cv2.imshow('binary Image (Weighted)', convert_to_binary_img_white(im))
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()
-        cv2.imshow('binary Image (Weighted)', im)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        # print(im)
+        # cv2.imshow('binary Image (Weighted)', im)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
     return lst_stripped_balls, lst_full_balls, white_ball
 
 def detect_black(lst_ball_images):
@@ -422,9 +424,8 @@ def main():
     print(f'triangulation time: {end_trian_time- trian_time:.2f} seconds')
 
 
-    # cv2.imshow("stretched_img", stretched_img)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
+    cv2.imshow("stretched_img", stretched_img)
+    cv2.waitKey(0)
 
 
     detect_balls_time = time.time()
@@ -437,7 +438,6 @@ def main():
     print(f'total algorithem time: {end_tot_time - tot_time:.2f} seconds')
     return ball_lst_from_pixel_to_cm(ball_detected)
 
-        ball_detection = ball_detection(stretched_img, model)
-        print("ball detection: ", ball_detection)
     
-    
+if __name__ == '__main__':
+    main()

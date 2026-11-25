@@ -90,9 +90,9 @@ def main(input_positions, chosen, path):
                                 (cm_to_pixel(chosen_ball[0]), cm_to_pixel(chosen_ball[1])),
                                 (cm_to_pixel(chosen_pocket[0]), cm_to_pixel(chosen_pocket[1])))
         
-        # edges = path[0]
-        # nodes = path[1]
-        # final_path = path[2]
+        edges = path[0]
+        nodes = path[1]
+        final_path = path[2]
         # for i in range(len(edges)):
         #     pygame.draw.line(screen, (0, 0, 255),
         #                         (cm_to_pixel(edges[i].v1.point.x), cm_to_pixel(edges[i].v1.point.y)),
@@ -101,11 +101,13 @@ def main(input_positions, chosen, path):
         # for i in range(len(nodes)):
         #     pygame.draw.circle(screen, (50,50,50), (cm_to_pixel(nodes[i].point.x), cm_to_pixel(nodes[i].point.y)), 5)
 
-        # if final_path != -9999: 
-        #     for i in range(len(final_path) - 1):
-        #         pygame.draw.line(screen, (255, 255, 255),
-        #                             (cm_to_pixel(final_path[i][0]), cm_to_pixel(final_path[i][1])),
-        #                             (cm_to_pixel(final_path[i+1][0]), cm_to_pixel(final_path[i+1][1])))
+        if final_path != -9999: 
+            for i in range(len(final_path) - 1):
+                pygame.draw.line(screen, (255, 255, 255),
+                                    (cm_to_pixel(final_path[i][0]), cm_to_pixel(final_path[i][1])),
+                                    (cm_to_pixel(final_path[i+1][0]), cm_to_pixel(final_path[i+1][1])))
+        else:
+            print("CANT FIND PATH")
 
 
 
