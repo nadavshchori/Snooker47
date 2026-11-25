@@ -160,14 +160,10 @@ def corners_detection(img):
     width = 960
     height = 1280
     # Reading input images
-    print(f"start img: {img}")
     new_img = remove_no_green_pixels(img)
-    print(f"img after remove: {new_img}")
     img = binary_kernel(new_img)
-    print(f"img adter binary_kernel : {img}")
     # resizing image (for better quality)
     img = cv2.resize(img, (width, height))
-    print(f"img after binary_kernel : {img}")
     # Process image before detecting
     processedImg = preProcessing(img)
 
@@ -230,7 +226,7 @@ def shade_check(lst_ball_images_and_boxes):
             ball_box2 = img_and_box2[1]
             center2 = find_center_box(ball_box2)
             if center1 != center2 and abs(center1[0] - center2[0]) < 50 and abs(center1[1] - center2[1]) < 50:
-                print("shade detected")
+                #print("shade detected")
                 if ball_box1.conf.item() < img_and_box2[2]:
                     img_and_box1 = None
                 else:
@@ -335,7 +331,7 @@ def detect_black(lst_ball_images):
             black_ball = ((x1 + x2) / 2, (y1 + y2) / 2)
 
     return black_ball
-        
+
 def create_lst_balls():
     lst_ball_types = []
     for i in range(1, 10):
