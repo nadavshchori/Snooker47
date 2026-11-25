@@ -1,6 +1,6 @@
 import sys
 import pygame
-import find_path
+import simulation.find_path
 #import path_planner
 
 def pixel_to_cm(pixel_value):
@@ -12,15 +12,15 @@ def cm_to_pixel(cm_value):
 # --- Window & Interface ---
 
 TITLE = "Ball Selector"
-SCREEN_WIDTH =  cm_to_pixel(find_path.TABLE_WIDTH)
-SCREEN_HEIGHT = cm_to_pixel(find_path.TABLE_HEIGHT)
-BALL_DIAMETER = cm_to_pixel(find_path.BALL_DIAMETER)
+SCREEN_WIDTH =  cm_to_pixel(simulation.find_path.TABLE_WIDTH)
+SCREEN_HEIGHT = cm_to_pixel(simulation.find_path.TABLE_HEIGHT)
+BALL_DIAMETER = cm_to_pixel(simulation.find_path.BALL_DIAMETER)
 BALL_RADIUS = BALL_DIAMETER / 2
 
 BACKGROUND_COLOR = (50, 50, 50)
 
-ROBOT_WIDTH = cm_to_pixel(find_path.ROBOT_WIDTH)
-ROBOT_LENGTH = cm_to_pixel(find_path.ROBOT_LENGTH)
+ROBOT_WIDTH = cm_to_pixel(simulation.find_path.ROBOT_WIDTH)
+ROBOT_LENGTH = cm_to_pixel(simulation.find_path.ROBOT_LENGTH)
 
 BALL_COUNT = 16
 
@@ -35,16 +35,16 @@ def main(input_positions, chosen, path):
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption(TITLE)
 
-    table_image = pygame.image.load("simulation/assets/images/table.png").convert_alpha()
+    table_image = pygame.image.load("C:\\Users\\TLP\\OneDrive - huji.ac.il\\Desktop\\magdad_pool\\Snooker47\\simulation\\assets\\images\\table.png").convert_alpha()
     table_image = pygame.transform.scale(table_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
     ball_images = []
     for i in range(1, BALL_COUNT + 1):
-        ball_image = pygame.image.load(f"simulation/assets/images/ball_{i}.png").convert_alpha()
+        ball_image = pygame.image.load(f"C:\\Users\\TLP\\OneDrive - huji.ac.il\\Desktop\\magdad_pool\\Snooker47\\simulation\\assets\\images\\ball_{i}.png").convert_alpha()
         ball_image = pygame.transform.scale(ball_image, (BALL_DIAMETER, BALL_DIAMETER))
         ball_images.append(ball_image)
 
-    robot_image = pygame.image.load("simulation/assets/images/robot.png").convert_alpha()
+    robot_image = pygame.image.load("C:\\Users\\TLP\\OneDrive - huji.ac.il\\Desktop\\magdad_pool\\Snooker47\\simulation\\assets\\images\\robot.png").convert_alpha()
     robot_image = pygame.transform.scale(robot_image, (ROBOT_WIDTH, ROBOT_LENGTH))
 
     game_on = True
@@ -90,22 +90,22 @@ def main(input_positions, chosen, path):
                                 (cm_to_pixel(chosen_ball[0]), cm_to_pixel(chosen_ball[1])),
                                 (cm_to_pixel(chosen_pocket[0]), cm_to_pixel(chosen_pocket[1])))
         
-        edges = path[0]
-        nodes = path[1]
-        final_path = path[2]
-        for i in range(len(edges)):
-            pygame.draw.line(screen, (0, 0, 255),
-                                (cm_to_pixel(edges[i].v1.point.x), cm_to_pixel(edges[i].v1.point.y)),
-                                (cm_to_pixel(edges[i].v2.point.x), cm_to_pixel(edges[i].v2.point.y)))
+        # edges = path[0]
+        # nodes = path[1]
+        # final_path = path[2]
+        # for i in range(len(edges)):
+        #     pygame.draw.line(screen, (0, 0, 255),
+        #                         (cm_to_pixel(edges[i].v1.point.x), cm_to_pixel(edges[i].v1.point.y)),
+        #                         (cm_to_pixel(edges[i].v2.point.x), cm_to_pixel(edges[i].v2.point.y)))
 
-        for i in range(len(nodes)):
-            pygame.draw.circle(screen, (50,50,50), (cm_to_pixel(nodes[i].point.x), cm_to_pixel(nodes[i].point.y)), 5)
+        # for i in range(len(nodes)):
+        #     pygame.draw.circle(screen, (50,50,50), (cm_to_pixel(nodes[i].point.x), cm_to_pixel(nodes[i].point.y)), 5)
 
-        if final_path != -9999: 
-            for i in range(len(final_path) - 1):
-                pygame.draw.line(screen, (255, 255, 255),
-                                    (cm_to_pixel(final_path[i][0]), cm_to_pixel(final_path[i][1])),
-                                    (cm_to_pixel(final_path[i+1][0]), cm_to_pixel(final_path[i+1][1])))
+        # if final_path != -9999: 
+        #     for i in range(len(final_path) - 1):
+        #         pygame.draw.line(screen, (255, 255, 255),
+        #                             (cm_to_pixel(final_path[i][0]), cm_to_pixel(final_path[i][1])),
+        #                             (cm_to_pixel(final_path[i+1][0]), cm_to_pixel(final_path[i+1][1])))
 
 
 
@@ -124,7 +124,7 @@ def main(input_positions, chosen, path):
 
 
 if __name__ == '__main__':
-        input_positions, chosen, path = find_path.main()
+        input_positions, chosen, path = simulation.find_path.main()
         main(input_positions, chosen, path)
 
 

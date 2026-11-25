@@ -3,7 +3,7 @@ import random
 from typing import List,Union
 import numpy as np
 import heapq
-from path_planner import *
+from simulation.path_planner import *
 import time
 # ============================================================================
 # CONFIGURATION CONSTANTS
@@ -27,11 +27,11 @@ CUE_OFFSET = 10 # cm
 # Input
 # ============================================================================
 
-input_positions = [
-    (random.randint(int(BALL_RADIUS), int(TABLE_WIDTH - BALL_RADIUS)), random.randint(int(BALL_RADIUS), int(TABLE_HEIGHT - BALL_RADIUS)))
-        for _ in range(16)
+# input_positions = [
+#     (random.randint(int(BALL_RADIUS), int(TABLE_WIDTH - BALL_RADIUS)), random.randint(int(BALL_RADIUS), int(TABLE_HEIGHT - BALL_RADIUS)))
+#         for _ in range(16)
     
-]
+# ]
 
 # If a ball is off the table his position is (0, 0)
 
@@ -421,9 +421,8 @@ def choose_ball_and_pocket_to_heat(table : Table) -> List[Union[Ball, Pocket]]:
 # Main
 # ============================================================================
 
-def main():
-    print(input_positions)
-    
+def main(input_positions):
+    print(f"input balls: {input_positions}")    
     table = initialise_table(input_positions)
     
     t1 = time.time()

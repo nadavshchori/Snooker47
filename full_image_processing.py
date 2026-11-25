@@ -2,12 +2,15 @@ import cv2
 import numpy as np
 from ultralytics import YOLO
 import copy
+import time
+import math
 
 
 TABLE_WIDTH = 255  # (cm)
 TABLE_HEIGHT = 129  # (cm)
 SCREEN_WIDTH = TABLE_WIDTH * 4
 SCREEN_HEIGHT = TABLE_HEIGHT * 4
+
 
 # ---------------------------------------------
 # Corner Detection
@@ -188,14 +191,14 @@ def four_point_perspective_transformation(src_img, corners):
 # Ball Detection
 # ---------------------------------------------
 
-def yolo_find_balls(img):
+def yolo_find_balls(img,model):
     results = model(img, conf=0.4)
     result = results[0]
     result.names[0] = ""
     result.show()
     return result
 
-def separate_balls(result):
+def separate_balls(result,img):
     lst_images = []
     for box in result.boxes:
         corners = box.xyxy[0].int().tolist()
@@ -203,7 +206,7 @@ def separate_balls(result):
         y1 = corners[1]
         x2 = corners[2]
         y2 = corners[3]
-        sep_ball_img = result[y1:y2, x1:x2]
+        sep_ball_img = img[y1:y2, x1:x2]
         lst_images.append([sep_ball_img, box, box.conf.item()])
 
     return lst_images
@@ -219,18 +222,22 @@ def find_center_box(box):
     return (center_x, center_y)
 
 def shade_check(lst_ball_images_and_boxes):
-    for img_and_box1 in lst_ball_images_and_boxes:
-        ball_box1 = img_and_box1[1]
+    delete_dict = {}
+    for i in range(len(lst_ball_images_and_boxes)):
+        ball_box1 = lst_ball_images_and_boxes[i][1]
         center1 = find_center_box(ball_box1)
-        for img_and_box2 in lst_ball_images_and_boxes:
-            ball_box2 = img_and_box2[1]
+        for j in range(len(lst_ball_images_and_boxes)):
+            ball_box2 = lst_ball_images_and_boxes[j][1]
             center2 = find_center_box(ball_box2)
-            if center1 != center2 and abs(center1[0] - center2[0]) < 50 and abs(center1[1] - center2[1]) < 50:
+            if center1 != center2 and abs(center1[0] - center2[0]) < 30 and abs(center1[1] - center2[1]) < 30:
                 print("shade detected")
-                if ball_box1.conf.item() < img_and_box2[2]:
-                    img_and_box1 = None
+                if ball_box1.conf.item() < ball_box2.conf.item():
+                    delete_dict[i] = lst_ball_images_and_boxes[i]
                 else:
-                    img_and_box2 = None
+                    delete_dict[j] = lst_ball_images_and_boxes[j]
+
+    for key in delete_dict:
+        del lst_ball_images_and_boxes[key]
 
     return lst_ball_images_and_boxes
 
@@ -263,24 +270,12 @@ def convert_to_binary_img_black(img):
     return img
 
 def stripes_full_or_white(lst_ball_images_and_boxes, lst_stripped_balls, lst_full_balls, black_ball):
-    max_white = 0
-    min_white = 100000000
+
     white_ball = (0, 0)
     count_stripped = 0
     count_full = 0
     sum_white = 0
-
-    for ball_img in lst_ball_images_and_boxes:
-        bi_img = convert_to_binary_img_white(ball_img[0])  # only black and white
-        sum_white = 0
-        rows, cols = bi_img.shape[:2]
-        for i in range(rows):
-            for j in range(cols):
-                sum_white += int(bi_img[i, j])
-        if sum_white > max_white:
-            max_white = sum_white
-        if sum_white < min_white:
-            min_white = sum_white
+    balls_white = []
 
     for ball_img in lst_ball_images_and_boxes:
         bi_img = convert_to_binary_img_white(ball_img[0])  # only black and white
@@ -290,30 +285,40 @@ def stripes_full_or_white(lst_ball_images_and_boxes, lst_stripped_balls, lst_ful
             for j in range(cols):
                 sum_white += int(bi_img[i, j])
 
-        ball_box = ball_img[1]
+        balls_white.append(sum_white)
+
+    copy_whites = copy.deepcopy(balls_white)
+    copy_whites.sort()
+    max_white = copy_whites[-1]
+    third_max = copy_whites[-3]
+    min_white = copy_whites[0]
+    if third_max < (max_white + min_white) / 2:
+        third_max = max_white
+    mid = (third_max + min_white) / 2 
+
+    for j in range(len(lst_ball_images_and_boxes)):
+        ball_box = lst_ball_images_and_boxes[j][1]
         center = find_center_box(ball_box)
-        im = ball_img[0]
+        im = lst_ball_images_and_boxes[j][0]
 
-        if sum_white >= max_white:
+        if balls_white[j] >= max_white:
             white_ball = center
-            print("sum_white: ", sum_white, "type: white")
+            print("sum_white: ", balls_white[j], "type: white")
 
-        elif min_white + 50000 <= sum_white < max_white:
+        elif mid <= balls_white[j] < max_white:
             lst_stripped_balls[count_stripped] = center
             count_stripped += 1
-            print("sum_white: ", sum_white, "type: stripped", "center: ", center)
+            print("sum_white: ", balls_white[j], "type: stripped", "center: ", center)
 
         elif center != black_ball:
             lst_full_balls[count_full] = center
             count_full += 1
-            print("sum_white: ", sum_white, "type: full", "center: ", center)
+            print("sum_white: ", balls_white[j], "type: full", "center: ", center)
 
-        else:
-            print("type: black")
 
-        cv2.imshow('binary Image (Weighted)', bi_img)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        # cv2.imshow('binary Image (Weighted)', bi_img)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
         cv2.imshow('binary Image (Weighted)', im)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
@@ -344,28 +349,32 @@ def detect_black(lst_ball_images):
 
 def create_lst_balls():
     lst_ball_types = []
-    for i in range(1, 10):
+    for i in range(1, 20):
         lst_ball_types.append((0, 0))
     return lst_ball_types
 
 def combine_lists(white_ball, black_ball, lst_stripped_balls, lst_full_balls):
     lst_all_balls = []
     lst_all_balls.append(white_ball)
-    for ball in lst_stripped_balls:
-        lst_all_balls.append(ball)
+
+    for i in range(0,7):
+        lst_all_balls.append(lst_full_balls[i])
+
     lst_all_balls.append(black_ball)
-    for ball in lst_full_balls:
-        lst_all_balls.append(ball)
+
+    for j in range(0,7):    
+        lst_all_balls.append(lst_stripped_balls[j])
+    
     return lst_all_balls
 
-def ball_detection(img, model):
+def ball_detection(img,model):
     lst_stripped_balls = create_lst_balls()
     lst_full_balls = create_lst_balls()
     white_ball = (0, 0)
     black_ball = (0, 0)
 
-    result = yolo_find_balls(img)
-    lst_ball_images_and_boxes = separate_balls(result)
+    result = yolo_find_balls(img, model)
+    lst_ball_images_and_boxes = separate_balls(result,img)
     lst_ball_images_and_boxes = shade_check(lst_ball_images_and_boxes)
     black_ball = detect_black(lst_ball_images_and_boxes)
     lst_stripped_balls, lst_full_balls, white_ball = stripes_full_or_white(lst_ball_images_and_boxes, lst_stripped_balls,
@@ -373,27 +382,60 @@ def ball_detection(img, model):
     lst_all_balls_pixels = combine_lists(white_ball, black_ball, lst_stripped_balls, lst_full_balls)
     return lst_all_balls_pixels
 
+def ball_lst_from_pixel_to_cm(lst_all_balls_pixels):
+    new_lst = []
+    for i in range(len(lst_all_balls_pixels)):
+        new_lst.append((lst_all_balls_pixels[i][0] / 4, lst_all_balls_pixels[i][1] / 4))
+    return new_lst
+
+
 # ---------------------------------------------
 # Main
 # ---------------------------------------------
-if __name__ == '__main__':
+# if __name__ == '__main__':
+
+
+def main():
+    tot_time = time.time()
+
+    yolo_time = time.time()
     model = YOLO("yoloe-26n-seg.pt")
-    model.set_classes(["billiard circular ball on green background maybe near other balls"])
+    model.set_classes(["billiard ball on green background maybe near other balls"])
+    end_yolo_time = time.time()
+    print(f'yolo time: {end_yolo_time - yolo_time:.2f} seconds')
 
-    while True:
-        src_path = input("Enter the source image path: ")
-        src_img = cv2.imread(src_path)
+    src_path = input("Enter the source image path: ")
+    src_img = cv2.imread(src_path)
 
-        cv2.imshow("src_img", src_img)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+    # cv2.imshow("src_img", src_img)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
 
-        corners = corners_detection(copy.deepcopy(src_img))
-        stretched_img = four_point_perspective_transformation(src_img, corners)
+    corners_time = time.time()
+    corners = corners_detection(copy.deepcopy(src_img))
+    end_corners_time = time.time()
+    print(f'find corners time: {end_corners_time - corners_time:.2f} seconds')
 
-        cv2.imshow("stretched_img", stretched_img)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+    trian_time = time.time()
+    stretched_img = four_point_perspective_transformation(src_img, corners)
+    end_trian_time = time.time()  
+    print(f'triangulation time: {end_trian_time- trian_time:.2f} seconds')
+
+
+    # cv2.imshow("stretched_img", stretched_img)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
+
+
+    detect_balls_time = time.time()
+    ball_detected = ball_detection(stretched_img,model)
+    print("ball detection: ", ball_detected)
+    end_ball_detect_time = time.time()  
+    print(f'ball detect time: {end_ball_detect_time - detect_balls_time:.2f} seconds')
+
+    end_tot_time = time.time()
+    print(f'total algorithem time: {end_tot_time - tot_time:.2f} seconds')
+    return ball_lst_from_pixel_to_cm(ball_detected)
 
         ball_detection = ball_detection(stretched_img, model)
         print("ball detection: ", ball_detection)
