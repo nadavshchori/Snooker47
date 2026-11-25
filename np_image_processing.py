@@ -16,7 +16,7 @@ SCREEN_HEIGHT = TABLE_HEIGHT * 4
 #->
 def remove_no_green_pixels(img):
     mask = (img[:, :, 1] > 150) & (img[:, :, 0] > 60) & (img[:, :, 2] > 80) & (img[:, :, 2] < 150)
-    out = np.zeros(img.shape[0:2])
+    out = np.zeros(img.shape[0:3], dtype=int)
     out[mask] = 255
     
     return out
@@ -27,7 +27,8 @@ def preProcessing(imgGray):
         Parameters: gray img (matrix): matrix image
         Returns: imgThres(matrix): Processed matrix image
     """
-
+    img_uint8 = imgGray.astype(np.uint8)
+    imgGray = cv2.cvtColor(img_uint8, cv2.COLOR_BGR2GRAY)
     # 2 - Denoise image
     imgBlur = cv2.fastNlMeansDenoising(imgGray, h=10)
     # imgBlur2 = cv2.GaussianBlur(imgGray,(5,5),1)  # another way of denoising
@@ -137,9 +138,10 @@ def binary_kernel(img):
 
     K_SIZE = 15
 
-    kernel = np.ones((K_SIZE, K_SIZE))
-    
-    sum_mat = signal.convolve2d(img, kernel, mode="same")
+    kernel = np.ones((K_SIZE, K_SIZE, K_SIZE))
+
+    sum_mat = signal.convolve(img, kernel, mode="same")
+    #sum_mat = signal.convolve2d(img, kernel, mode="same")
     #sum_mat = (K_SIZE**2) * cv2.blur(img, K_SIZE) 
 
     mask = sum_mat[:, :] >=  PIXEL_AMOUNT_THRESHOLD * 255
@@ -158,11 +160,14 @@ def corners_detection(img):
     width = 960
     height = 1280
     # Reading input images
+    print(f"start img: {img}")
     new_img = remove_no_green_pixels(img)
+    print(f"img after remove: {new_img}")
     img = binary_kernel(new_img)
+    print(f"img adter binary_kernel : {img}")
     # resizing image (for better quality)
     img = cv2.resize(img, (width, height))
-
+    print(f"img after binary_kernel : {img}")
     # Process image before detecting
     processedImg = preProcessing(img)
 
@@ -368,29 +373,59 @@ def ball_detection(img, model):
     lst_all_balls_pixels = combine_lists(white_ball, black_ball, lst_stripped_balls, lst_full_balls)
     return lst_all_balls_pixels
 
-if __name__ == '__main__':
+def ball_lst_from_pixel_to_cm(lst_all_balls_pixels):
+    new_lst = []
+    for i in range(len(lst_all_balls_pixels)):
+        new_lst.append((lst_all_balls_pixels[i][0] / 4, lst_all_balls_pixels[i][1] / 4))
+    return new_lst
+    
+    
+def main():    
+    tot_time = time.time()
+
+    yolo_time = time.time()
     model = YOLO("yoloe-26n-seg.pt")
-    model.set_classes(["billiard circular ball on green background maybe near other balls"])
+    model.set_classes(["billiard ball on green background maybe near other balls"])
+    end_yolo_time = time.time()
+    print(f'yolo time: {end_yolo_time - yolo_time:.2f} seconds')
 
-    while True:
-        src_path = input("Enter the source image path: ")
-        src_img = cv2.imread(src_path)
-
-        cv2.imshow("src_img", src_img)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-
-        corners = corners_detection(copy.deepcopy(src_img))
-        stretched_img = four_point_perspective_transformation(src_img, corners)
-
-        cv2.imshow("stretched_img", stretched_img)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-
-        ball_detection = ball_detection(stretched_img, model)
-        print("ball detection: ", ball_detection)
     
+    src_path = input("Enter the source image path: ")
+    src_img = cv2.imread(src_path)
+
+    # cv2.imshow("src_img", src_img)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
+
+    corners_time = time.time()
+    corners = corners_detection(copy.deepcopy(src_img))
+    end_corners_time = time.time()
+    print(f'find corners time: {end_corners_time - corners_time:.2f} seconds')
+
+    trian_time = time.time()
+    stretched_img = four_point_perspective_transformation(src_img, corners)
+    end_trian_time = time.time()  
+    print(f'triangulation time: {end_trian_time- trian_time:.2f} seconds')
+
+
+    # cv2.imshow("stretched_img", stretched_img)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
+
+
+    detect_balls_time = time.time()
+    ball_detected = ball_detection(stretched_img, model)
+    print("ball detection: ", ball_detected)
+    end_ball_detect_time = time.time()  
+    print(f'ball detect time: {end_ball_detect_time - detect_balls_time:.2f} seconds')
+    
+    end_tot_time = time.time()
+    print(f'total algorithem time: {end_tot_time - tot_time:.2f} seconds')
+    return ball_lst_from_pixel_to_cm(ball_detected)
+
     
 
 
 
+if __name__ == '__main__':
+    main()
