@@ -192,14 +192,14 @@ def four_point_perspective_transformation(src_img, corners):
 # Ball Detection
 # ---------------------------------------------
 
-def yolo_find_balls(img):
+def yolo_find_balls(img, model):
     results = model(img, conf=0.4)
     result = results[0]
     result.names[0] = ""
     result.show()
     return result
 
-def separate_balls(result):
+def separate_balls(result,img):
     lst_images = []
     for box in result.boxes:
         corners = box.xyxy[0].int().tolist()
@@ -207,7 +207,7 @@ def separate_balls(result):
         y1 = corners[1]
         x2 = corners[2]
         y2 = corners[3]
-        sep_ball_img = result[y1:y2, x1:x2]
+        sep_ball_img = img[y1:y2, x1:x2]
         lst_images.append([sep_ball_img, box, box.conf.item()])
 
     return lst_images
@@ -268,12 +268,9 @@ def convert_to_binary_img_black(img):
 
 #->
 def striped_full_or_white(lst_ball_images_and_boxes, lst_stripped_balls, lst_full_balls, black_ball):
-    max_white = 0
-    min_white = 100000000
     white_ball = (0, 0)
     count_stripped = 0
     count_full = 0
-    sum_white = 0
     balls_white_value = []
         
     i = 0
@@ -283,9 +280,6 @@ def striped_full_or_white(lst_ball_images_and_boxes, lst_stripped_balls, lst_ful
         i += 1
 
     balls_white_value.sort(key=lambda x: x[0])
-    
-    ball_box = ball_img[1]
-    center = find_center_box(ball_box)
 
     max_white = balls_white_value[-1][0]
     third_max = balls_white_value[-3][0]
@@ -364,11 +358,11 @@ def ball_detection(img, model):
     white_ball = (0, 0)
     black_ball = (0, 0)
 
-    result = yolo_find_balls(img)
-    lst_ball_images_and_boxes = separate_balls(result)
+    result = yolo_find_balls(img, model)
+    lst_ball_images_and_boxes = separate_balls(result,img)
     lst_ball_images_and_boxes = shade_check(lst_ball_images_and_boxes)
     black_ball = detect_black(lst_ball_images_and_boxes)
-    lst_stripped_balls, lst_full_balls, white_ball = stripes_full_or_white(lst_ball_images_and_boxes, lst_stripped_balls,
+    lst_stripped_balls, lst_full_balls, white_ball = striped_full_or_white(lst_ball_images_and_boxes, lst_stripped_balls,
                                                                        lst_full_balls, black_ball)
     lst_all_balls_pixels = combine_lists(white_ball, black_ball, lst_stripped_balls, lst_full_balls)
     return lst_all_balls_pixels

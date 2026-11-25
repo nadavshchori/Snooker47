@@ -35,16 +35,16 @@ def main(input_positions, chosen, path):
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption(TITLE)
 
-    table_image = pygame.image.load("C:\\Users\\TLP\\OneDrive - huji.ac.il\\Desktop\\magdad_pool\\Snooker47\\simulation\\assets\\images\\table.png").convert_alpha()
+    table_image = pygame.image.load("simulation\\assets\\images\\table.png").convert_alpha()
     table_image = pygame.transform.scale(table_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
     ball_images = []
     for i in range(1, BALL_COUNT + 1):
-        ball_image = pygame.image.load(f"C:\\Users\\TLP\\OneDrive - huji.ac.il\\Desktop\\magdad_pool\\Snooker47\\simulation\\assets\\images\\ball_{i}.png").convert_alpha()
+        ball_image = pygame.image.load(f"simulation\\assets\\images\\ball_{i}.png").convert_alpha()
         ball_image = pygame.transform.scale(ball_image, (BALL_DIAMETER, BALL_DIAMETER))
         ball_images.append(ball_image)
 
-    robot_image = pygame.image.load("C:\\Users\\TLP\\OneDrive - huji.ac.il\\Desktop\\magdad_pool\\Snooker47\\simulation\\assets\\images\\robot.png").convert_alpha()
+    robot_image = pygame.image.load("simulation\\assets\\images\\robot.png").convert_alpha()
     robot_image = pygame.transform.scale(robot_image, (ROBOT_WIDTH, ROBOT_LENGTH))
 
     game_on = True
