@@ -378,8 +378,10 @@ def ball_detection(img):
 # ---------------------------------------------
 # Main
 # ---------------------------------------------
-if __name__ == '__main__':
+# if __name__ == '__main__':
 
+
+def main():
     tot_time = time.time()
 
     model = YOLO("yoloe-26n-seg.pt")
@@ -388,40 +390,40 @@ if __name__ == '__main__':
     end_yolo_time = time.time()
     print(f'yolo time: {end_yolo_time - yolo_time:.2f} seconds')
 
+    src_path = input("Enter the source image path: ")
+    src_img = cv2.imread(src_path)
 
-   
-    while True:
-        src_path = input("Enter the source image path: ")
-        src_img = cv2.imread(src_path)
+    cv2.imshow("src_img", src_img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
-        cv2.imshow("src_img", src_img)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+    corners_time = time.time()
+    corners = corners_detection(copy.deepcopy(src_img))
+    end_corners_time = time.time()
+    print(f'find corners time: {end_corners_time - corners_time:.2f} seconds')
 
-        corners_time = time.time()
-        corners = corners_detection(copy.deepcopy(src_img))
-        end_corners_time = time.time()
-        print(f'find corners time: {end_corners_time - corners_time:.2f} seconds')
-
-        trian_time = time.time()
-        stretched_img = four_point_perspective_transformation(src_img, corners)
-        end_trian_time = time.time()  
-        print(f'triangulation time: {end_trian_time- trian_time:.2f} seconds')
+    trian_time = time.time()
+    stretched_img = four_point_perspective_transformation(src_img, corners)
+    end_trian_time = time.time()  
+    print(f'triangulation time: {end_trian_time- trian_time:.2f} seconds')
 
 
-        cv2.imshow("stretched_img", stretched_img)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+    cv2.imshow("stretched_img", stretched_img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
 
-        detect_balls_time = time.time()
-        ball_detected = ball_detection(stretched_img)
-        print("ball detection: ", ball_detected)
-        end_ball_detect_time = time.time()  
-        print(f'ball detect time: {end_ball_detect_time - detect_balls_time:.2f} seconds')
+    detect_balls_time = time.time()
+    ball_detected = ball_detection(stretched_img)
+    print("ball detection: ", ball_detected)
+    end_ball_detect_time = time.time()  
+    print(f'ball detect time: {end_ball_detect_time - detect_balls_time:.2f} seconds')
 
-        end_tot_time = time.time()
-        print(f'total algorithem time: {end_tot_time - tot_time:.2f} seconds')
+    end_tot_time = time.time()
+    print(f'total algorithem time: {end_tot_time - tot_time:.2f} seconds')
+    return ball_detected
+
+
 
 
 

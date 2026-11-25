@@ -336,7 +336,7 @@ model.set_classes(["billiard circular ball on green background maybe near other 
 
 
 result = yolo_find_balls(img)
-lst_ball_images_and_boxes = separate_balls(result)
+lst_ball_images_and_boxes = separate_balls(result,img)
 lst_ball_images_and_boxes = shade_check(lst_ball_images_and_boxes)
 black_ball = detect_black(lst_ball_images_and_boxes)
 lst_stripped_balls, lst_full_balls, white_ball = stripes_full_or_white(lst_ball_images_and_boxes, lst_stripped_balls, lst_full_balls, black_ball)
