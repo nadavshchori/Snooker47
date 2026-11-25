@@ -20,6 +20,7 @@ def remove_no_green_pixels(img):
                 img[i, j] = (255, 255, 255)
             else:
                 img[i, j] = 0
+    
     return img
 
 def preProcessing(img):
@@ -396,7 +397,5 @@ if __name__ == '__main__':
 
         ball_detection = ball_detection(stretched_img, model)
         print("ball detection: ", ball_detection)
-
-
-
-
+    
+    
