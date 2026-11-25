@@ -4,6 +4,7 @@ from typing import List,Union
 import numpy as np
 import heapq
 from path_planner import *
+import time
 # ============================================================================
 # CONFIGURATION CONSTANTS
 # ============================================================================
@@ -422,18 +423,25 @@ def choose_ball_and_pocket_to_heat(table : Table) -> List[Union[Ball, Pocket]]:
 
 def main():
     print(input_positions)
+    
     table = initialise_table(input_positions)
     
-
+    t1 = time.time()
     chosen = choose_ball_and_pocket_to_heat(table)
-    
+    t2 = time.time()
     if chosen:
         path = table.find_shortest_path(chosen[0].get_pos())
+        t3 = time.time()
         print(f"chosen ball pos: {chosen[0]}")
         print(f"chosen pocket pos: {chosen[1]}")
+        print(f"choose time: {t2-t1} \n path time: {t3-t2}")
         return [input_positions, [(chosen[0].pos.x,chosen[0].pos.y) , (chosen[1].pos.x, chosen[1].pos.y)], path]
+        
     else:
+
         path = table.find_shortest_path()
+        t3 = time.time()
+        print(f"choose time: {t2-t1} \n path time: {t3-t2}")
         return [input_positions, [] , path]
 # ============================================================================
 # Run

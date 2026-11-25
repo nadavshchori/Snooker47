@@ -2,7 +2,7 @@ import math
 import sys
 import pygame
 import random
-import ball_selector
+import simulation.old.ball_selector as ball_selector
 
 def pixel_to_cm(pixel_value):
     return pixel_value / 4
