@@ -23,6 +23,7 @@ def remove_no_green_pixels(img):
                 img[i, j] = (255, 255, 255)
             else:
                 img[i, j] = 0
+    
     return img
 
 def preProcessing(img):
@@ -436,7 +437,7 @@ def main():
     print(f'total algorithem time: {end_tot_time - tot_time:.2f} seconds')
     return ball_lst_from_pixel_to_cm(ball_detected)
 
-
-
-
-
+        ball_detection = ball_detection(stretched_img, model)
+        print("ball detection: ", ball_detection)
+    
+    
