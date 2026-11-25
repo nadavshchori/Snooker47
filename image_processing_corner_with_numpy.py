@@ -163,7 +163,9 @@ def format_corners(corners):
     output = []
     for i in range(corners.shape[0]):
         output.append([int(corners[i, 0, 0]), int(corners[i, 0, 1])])
-    return [output[1]] + [output[2]] + [output[0]] + [output[3]]
+
+    output.sort(key=lambda x: x[0])
+    return output
 
 
 def corners_detection(img):
@@ -174,9 +176,9 @@ def corners_detection(img):
     new_img = remove_no_green_pixels(img)
     img = binary_kernel(new_img)
     # resizing image (for better quality)
-    img = cv2.resize(img, (width, height))
+    img1 = cv2.resize(img, (width, height))
     # Process image before detecting
-    processedImg = preProcessing(img)
+    processedImg = preProcessing(img1)
 
     # Get corners points
     corners = cornerDetector(processedImg)
