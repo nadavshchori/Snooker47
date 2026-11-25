@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-#from ultralytics import YOLO
+from ultralytics import YOLO
 import copy
 import time
 import math
@@ -163,18 +163,10 @@ def corners_detection(img):
     width = 960
     height = 1280
     # Reading input images
-    print(f"start img: {img}")
-
     new_img = remove_no_green_pixels(img)
-    print(f"img after remove: {new_img}")
-
     img = binary_kernel(new_img)
-    print(f"img adter binary_kernel : {img}")
-
     # resizing image (for better quality)
     img = cv2.resize(img, (width, height))
-
-    print(f"img after binary_kernel : {img}")
 
     # Process image before detecting
     processedImg = preProcessing(img)
@@ -409,8 +401,8 @@ def main():
     tot_time = time.time()
 
     yolo_time = time.time()
-    #model = YOLO("yoloe-26n-seg.pt")
-    #model.set_classes(["billiard ball on green background maybe near other balls"])
+    model = YOLO("yoloe-26n-seg.pt")
+    model.set_classes(["billiard ball on green background maybe near other balls"])
     end_yolo_time = time.time()
     print(f'yolo time: {end_yolo_time - yolo_time:.2f} seconds')
 
