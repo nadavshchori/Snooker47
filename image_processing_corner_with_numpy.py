@@ -4,7 +4,6 @@ from ultralytics import YOLO
 import copy
 import time
 from scipy import signal
-
 import math
 
 TABLE_WIDTH = 255  # (cm)
@@ -245,7 +244,7 @@ def shade_check(lst_ball_images_and_boxes):
             ball_box2 = lst_ball_images_and_boxes[j][1]
             center2 = find_center_box(ball_box2)
             if center1 != center2 and abs(center1[0] - center2[0]) < 30 and abs(center1[1] - center2[1]) < 30:
-                print("shade detected")
+
                 if ball_box1.conf.item() < ball_box2.conf.item():
                     delete_dict[i] = lst_ball_images_and_boxes[i]
                 else:
@@ -320,17 +319,14 @@ def stripes_full_or_white(lst_ball_images_and_boxes, lst_stripped_balls, lst_ful
 
         if balls_white[j] >= max_white:
             white_ball = center
-            print("sum_white: ", balls_white[j], "type: white")
 
         elif mid <= balls_white[j] < max_white:
             lst_stripped_balls[count_stripped] = center
             count_stripped += 1
-            print("sum_white: ", balls_white[j], "type: stripped", "center: ", center)
 
         elif center != black_ball:
             lst_full_balls[count_full] = center
             count_full += 1
-            print("sum_white: ", balls_white[j], "type: full", "center: ", center)
 
         # cv2.imshow('binary Image (Weighted)', convert_to_binary_img_white(im))
         # cv2.waitKey(0)
@@ -427,9 +423,13 @@ def main():
     end_yolo_time = time.time()
     print(f'yolo time: {end_yolo_time - yolo_time:.2f} seconds')
 
-    src_path = input("Enter the source image path: ")
-    src_img = cv2.imread(src_path)
+    images = {1: "C:\\Users\TLP\Documents\GitHub\Snooker47\pool_magdad\poc_table.jpg",
+          2: "C:\\Users\TLP\Documents\GitHub\Snooker47\pool_magdad\poc_table1.jpg"}
 
+    src_path = input("Enter the source image path: ")
+    src_img = cv2.imread(images[int(src_path)])
+
+    start_algo = time.time()
     # cv2.imshow("src_img", src_img)
     # cv2.waitKey(0)
     # cv2.destroyAllWindows()
@@ -444,17 +444,16 @@ def main():
     end_trian_time = time.time()
     print(f'triangulation time: {end_trian_time - trian_time:.2f} seconds')
 
-    cv2.imshow("stretched_img", stretched_img)
-    cv2.waitKey(0)
+    #cv2.imshow("stretched_img", stretched_img)
+    #cv2.waitKey(0)
 
     detect_balls_time = time.time()
     ball_detected = ball_detection(stretched_img, model)
-    print("ball detection: ", ball_detected)
     end_ball_detect_time = time.time()
     print(f'ball detect time: {end_ball_detect_time - detect_balls_time:.2f} seconds')
 
     end_tot_time = time.time()
-    print(f'total algorithem time: {end_tot_time - tot_time:.2f} seconds')
+    print(f'total algorithem time: {end_tot_time - start_algo:.2f} seconds')
     return ball_lst_from_pixel_to_cm(ball_detected)
 
 

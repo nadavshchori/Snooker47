@@ -422,7 +422,6 @@ def choose_ball_and_pocket_to_heat(table : Table) -> List[Union[Ball, Pocket]]:
 # ============================================================================
 
 def main(input_positions):
-    print(f"input balls: {input_positions}")    
     table = initialise_table(input_positions)
     
     t1 = time.time()
@@ -431,8 +430,6 @@ def main(input_positions):
     if chosen:
         path = table.find_shortest_path(chosen[0].get_pos())
         t3 = time.time()
-        print(f"chosen ball pos: {chosen[0]}")
-        print(f"chosen pocket pos: {chosen[1]}")
         print(f"choose time: {t2-t1} \n path time: {t3-t2}")
         return [input_positions, [(chosen[0].pos.x,chosen[0].pos.y) , (chosen[1].pos.x, chosen[1].pos.y)], path]
         
